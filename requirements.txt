@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+pydantic
+python-dotenv
+
+openai
+openai-agents
+
+google-api-python-client
+youtube-transcript-api
+
+google-generativeai
+
+requests
+pillow
+
+typing-extensions
