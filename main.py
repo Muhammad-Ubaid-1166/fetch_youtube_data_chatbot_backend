@@ -388,13 +388,14 @@ metadata_rewriter_llm = ChatOpenAI(
 )
 
 # ── Gemini LLMs on KEY 1 ──
-transcript_steps_llm = ChatGroq(
-    api_key=settings.groq_api_key_3,
-    model=settings.groq_model_name
+transcript_steps_llm = ChatOpenAI(
+    api_key=settings.gemini_api_key_2,
+    base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+    model="gemini-2.5-flash",
 )
-script_polish_llm = ChatGroq(
-    api_key=settings.groq_api_key_1,
-    model=settings.groq_model_name
+script_polish_llm = ChatOpenAI(
+    api_key=settings.openai_api_key,
+    model="gpt-4.1-nano",
 )
 image_placer_llm = ChatOpenAI(
     api_key=settings.openai_api_key,
@@ -406,9 +407,9 @@ script_writer_llm = ChatOpenAI(
     api_key=settings.openai_api_key,
     model="gpt-4.1-nano",
 )
-image_allocator_llm = ChatGroq(
-    api_key=settings.groq_api_key_2,
-    model=settings.groq_model_name
+image_allocator_llm = ChatOpenAI(
+    api_key=settings.openai_api_key,
+    model="gpt-4.1-nano",
 )
 
 print("[LLM_INIT][OK] All LLMs initialized (Groq_1 + Gemini_1 + Gemini_2).")
