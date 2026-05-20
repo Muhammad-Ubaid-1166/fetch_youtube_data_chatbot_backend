@@ -103,6 +103,8 @@ class Settings(BaseSettings):
     gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
 
 
+    openai_api_key: str = ""  
+
 settings = Settings()
 
 
@@ -134,6 +136,7 @@ def validate_api_keys() -> None:
     print(f"[CONFIG][OK] GROQ_API_KEY_3: {settings.groq_api_key_3[:6]}...")
     print(f"[CONFIG][OK] GEMINI_API_KEY_1: {settings.gemini_api_key_1[:6]}...")
     print(f"[CONFIG][OK] GEMINI_API_KEY_2: {settings.gemini_api_key_2[:6]}...")
+    print(f"[CONFIG][OK] OPENAI_API_KEY: {settings.openai_api_key[:6]}...")
 
 
 validate_api_keys()
