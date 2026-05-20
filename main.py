@@ -96,7 +96,7 @@ class Settings(BaseSettings):
     image_gen_delay_sec: int = 1
 
     # ── LLM Model Names ──
-    groq_model_name: str = "llama-3.3-70b-versatile"
+    groq_model_name: str = "llama-3.1-8b-instant"
     groq_vision_model_name: str = "meta-llama/llama-4-scout-17b-16e-instruct"
 
     # ── Gemini OpenAI-compatible Base URL ──
@@ -120,6 +120,7 @@ def validate_api_keys() -> None:
         "CF_WORKER_URL": settings.cf_worker_url,
         "IMGBB_API_KEY": settings.imgbb_api_key,
         "CF_WORKER_API_KEY": settings.cf_worker_api_key,
+        "OPENAI_API_KEY": settings.openai_api_key,
     }
 
     missing = [name for name, value in required_keys.items() if not value]
@@ -377,9 +378,10 @@ class MetadataState(TypedDict):
 #                    + image_allocator_llm    (1 call: image allocation)
 #   CF_WORKER        → image_generator_node    (15+1 calls: 15 script images + 1 thumbnail)
 
-metadata_rewriter_llm = ChatGroq(
-    api_key=settings.groq_api_key_1,
-    model=settings.groq_model_name
+metadata_rewriter_llm = ChatOpenAI(
+    api_key=settings.gemini_api_key_1,
+    base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+    model="gemini-2.5-flash",
 )
 
 # ── Gemini LLMs on KEY 1 ──
@@ -391,15 +393,15 @@ script_polish_llm = ChatGroq(
     api_key=settings.groq_api_key_1,
     model=settings.groq_model_name
 )
-image_placer_llm = ChatGroq(
-    api_key=settings.groq_api_key_3,
-    model=settings.groq_model_name
+image_placer_llm = ChatOpenAI(
+    api_key=settings.openai_api_key,
+    model="gpt-4.1-nano",
 )
 
 # ── Gemini LLMs on KEY 2 ──
-script_writer_llm = ChatGroq(
-    api_key=settings.groq_api_key_2,
-    model=settings.groq_model_name
+script_writer_llm = ChatOpenAI(
+    api_key=settings.openai_api_key,
+    model="gpt-4.1-nano",
 )
 image_allocator_llm = ChatGroq(
     api_key=settings.groq_api_key_2,
