@@ -444,230 +444,112 @@ def invoke_with_retry(llm, messages, max_retries: int = 5, initial_delay: float 
 # Appended to every content-generating system prompt to enforce output language.
 
 LANGUAGE_DIRECTIVE = """
-
-LANGUAGE INSTRUCTION — CRITICAL:
-You MUST write ALL your output in {language}.
-Do NOT write in English unless {language} is "English".
-If {language} is Urdu, write in Urdu. If {language} is Hindi, write in Hindi.
-Every single word of your output must be in {language}.
-This is NON-NEGOTIABLE."""
+LANGUAGE: Write ALL output in {language}. No exceptions."""
 
 # ─── Node 1-3: Metadata Rewriter Prompts ──────────────────────────────────────
 
-REWRITE_TITLE_SYSTEM = """You are a YouTube title expert.
-Rewrite the given title so it is:
-- Changed 3-4% (same meaning, slightly different words)
-- Catchy and SEO friendly
-- Max 80 characters
-Return ONLY the new title, nothing else.""" + LANGUAGE_DIRECTIVE
+REWRITE_TITLE_SYSTEM = """Rewrite the title: 3-4% change, SEO friendly, max 80 chars.
+Return ONLY the new title.""" + LANGUAGE_DIRECTIVE
 
-REWRITE_TITLE_USER = "Original title: {title}"
+REWRITE_TITLE_USER = "Title: {title}"
 
 
-REWRITE_DESCRIPTION_SYSTEM = """You are a YouTube description expert.
-Rewrite the given description so it is:
-- Changed 3-4% (same meaning, slightly different wording)
-- SEO optimized and professional
-Return ONLY the new description, nothing else.""" + LANGUAGE_DIRECTIVE
+REWRITE_DESCRIPTION_SYSTEM = """Rewrite the description: 3-4% change, SEO optimized.
+Return ONLY the new description.""" + LANGUAGE_DIRECTIVE
 
-REWRITE_DESCRIPTION_USER = "Original description: {description}"
+REWRITE_DESCRIPTION_USER = "Description: {description}"
 
 
-REWRITE_HASHTAGS_SYSTEM = """You are a YouTube hashtag expert.
-Generate new hashtags based on the given ones.
-- Same topic, slightly different hashtags
-- Return exactly 5 hashtags
-- Format: #tag1, #tag2, #tag3, #tag4, #tag5
-Return ONLY the hashtags, nothing else.""" + LANGUAGE_DIRECTIVE
+REWRITE_HASHTAGS_SYSTEM = """Generate 5 hashtags on the same topic.
+Format: #tag1, #tag2, #tag3, #tag4, #tag5
+Return ONLY the hashtags.""" + LANGUAGE_DIRECTIVE
 
 REWRITE_HASHTAGS_USER = "Original hashtags: {hashtags}"
 
 
 # ─── Node 4: Transcript Steps Maker ───────────────────────────────────────────
 
-TRANSCRIPT_STEPS_SYSTEM = """You are a professional YouTube script planner.
-
-Given a video transcript, break it into structured script steps. For each step you MUST provide:
-- step_number: Sequential integer (1, 2, 3, ...)
-- description: What this step covers from the transcript (be specific and detailed)
-- continuity_note: How this step's output must connect to the previous step's output.
-  For Step 1, write "N/A — this is the opening step."
-  For all other steps, explain how this step continues from the previous one.
-- tone: The emotional/delivery tone for this step segment
-- word_count: Target number of words for this step's script segment
-
-CRITICAL RULE — MINIMUM WORD COUNT:
-The total_word_count across ALL steps MUST be at least {min_word_count} words.
-This is NON-NEGOTIABLE — even if the original transcript is very short,
-you must plan steps that EXPAND the content into a full 15-minute video script.
-Each step should have a word_count of at least 200 words.
-Distribute the {min_word_count}+ words across 6-10 steps.
-
-Other Rules:
-- Each step must logically flow from the previous one
-- continuity_note must explicitly reference the previous step's description
-- Tone should vary to keep the audience engaged
-- Expand on brief transcript points with examples, explanations, and context
-- Return the result matching the TranscriptStepsOutput schema exactly
-- Write ALL descriptions and continuity_notes in {language}""" + LANGUAGE_DIRECTIVE
+TRANSCRIPT_STEPS_SYSTEM = """You are a script planner.
+Break the transcript into 3 steps ONLY (for testing).
+Each step MUST have:
+- step_number, description (1 sentence), continuity_note (1 sentence), tone, word_count (set to 50)
+Total word count across steps: ~150 words.
+Return result matching TranscriptStepsOutput schema.
+Write in {language}.""" + LANGUAGE_DIRECTIVE
 
 TRANSCRIPT_STEPS_USER = "Transcript:\n{transcript}"
 
 
 # ─── Node 5: Script Writer ────────────────────────────────────────────────────
 
-SCRIPT_WRITER_SYSTEM = "You are a professional YouTube script writer who writes engaging, detailed, conversational scripts." + LANGUAGE_DIRECTIVE
+SCRIPT_WRITER_SYSTEM = "You are a YouTube script writer." + LANGUAGE_DIRECTIVE
 
-SCRIPT_WRITER_USER = """You are a professional YouTube script writer.
+SCRIPT_WRITER_USER = """Write Step {step_number} of {total_steps} for: {video_title}
 
-VIDEO TITLE: {video_title}
-You are writing Step {step_number} of {total_steps}.
-
-STEP INSTRUCTIONS:
 - Description: {description}
-- Continuity Note: {continuity_note}
 - Tone: {tone}
-- Target word count: {word_count} words — you MUST write at least {word_count} words for this step. Do NOT write less.
+- Word count: {word_count} words MAX (testing mode — keep it short)
+- Continue naturally from: \"{prev_output}\"
+- Use facts from: \"{transcript}\"
 
-PREVIOUS STEP'S WRITTEN OUTPUT (for continuity — your writing must naturally follow this):
-\"\"\"{prev_output}\"\"\"
-
-ORIGINAL TRANSCRIPT (reference material — draw facts and details from here):
-\"\"\"{transcript}\"\"\"
-
-RULES:
-- Write ONLY the script text for this step. No headers, no step numbers, no meta-commentary.
-- Match the tone exactly: {tone}
-- Hit the target word count of {word_count} words. Write at least {word_count} words.
-- The beginning of your output must naturally continue from where the previous step left off.
-- Use specific details from the original transcript — do not make up facts.
-- Write in a conversational YouTube script style — as if speaking directly to the audience.
-- You MUST write the entire script in {language}. Do NOT write in English unless {language} is "English"."""
+Rules: Script text only. No headers. Max {word_count} words. Write in {language}."""
 
 
 # ─── Node 6: Script Polish ────────────────────────────────────────────────────
 
-SCRIPT_POLISH_SYSTEM = "You are a professional YouTube script editor who polishes scripts to be cohesive, engaging, and natural-sounding." + LANGUAGE_DIRECTIVE
+SCRIPT_POLISH_SYSTEM = "You are a script editor." + LANGUAGE_DIRECTIVE
 
-SCRIPT_POLISH_USER = """You are a professional YouTube script editor.
-
-VIDEO TITLE: {video_title}
-
-Below is a YouTube script that was written in sections. Your job is to polish it into one cohesive, professional script.
-
-RULES:
-1. Smooth the transitions between sections so it reads as ONE continuous script.
-2. Remove any accidental repetitions — but do NOT cut substantive content.
-3. Fix any jarring tone shifts — the script should feel naturally varied, not abruptly switching.
-4. DO NOT rewrite the content. Only polish, smooth, and clean up.
-5. DO NOT shorten the script. The current script is approximately {draft_word_count} words. The final polished script MUST be at least {min_word_count} words. Do NOT go below this.
-6. DO NOT add headers, step numbers, or meta-commentary. Return only the script text.
-7. The final script should read as if a single person wrote it from start to finish.
-8. The entire polished script MUST remain in {language}. Do NOT translate or switch languages.
-
-SCRIPT TO POLISH (approximately {draft_word_count} words):
-\"\"\"{draft}\"\"\"
-
-Return ONLY the polished script text. No explanations, no meta-commentary.
-The final script MUST be at least {min_word_count} words.
-The final script MUST be in {language}."""
-
-
-# ─── Node 7: Image Allocator (Phase 1) ────────────────────────────────────────
-
-IMAGE_ALLOCATOR_SYSTEM = """You are a professional YouTube video image planner.
-
-Given the step-by-step breakdown of a YouTube script, decide how many images to allocate to each step.
+SCRIPT_POLISH_USER = """Polish this script for: {video_title}
 
 Rules:
-1. Total images across ALL steps should be approximately {default_image_count}.
-2. Allocate images proportionally to each step's word count (longer steps get more images).
-3. Minimum 1 image per step. Maximum 3 images per step.
-4. For each step, provide 1-3 rough visual subject hints (what the images could show).
-5. Return the result matching the StepImageAllocationList schema exactly.
-6. The allocations list must have one entry per step.
-7. Write step_description and image_hints in English (these are for image generation reference)."""
+1. Smooth transitions only — do NOT rewrite content.
+2. Remove repetitions.
+3. Keep it under 200 words (testing mode).
+4. Return ONLY the script. No commentary.
+5. Write in {language}.
 
-IMAGE_ALLOCATOR_USER = "Video title: {video_title}\n\nSteps:\n{steps_summary}"
-
-
-# ─── Node 8: Image Placer (Phase 2) ───────────────────────────────────────────
-
-IMAGE_PLACER_SYSTEM = "You are a professional YouTube video image director who places visuals at the perfect moments in a script."
-
-IMAGE_PLACER_USER = """You are a professional YouTube video image director.
-
-VIDEO TITLE: {video_title}
-STEP {step_number}: {step_description}
-
-You must place exactly {image_count} images in this step's script text.
-Image numbers for this step: {image_nums_str}
-
-ROUGH VISUAL HINTS (use these as starting points, but make them more detailed and specific):
-{hints_str}
-
-STEP SCRIPT TEXT:
-\"\"\"{step_text}\"\"\"
-
-YOUR TASK:
-1. Insert [image-N = brief visual description] markers at NATURAL BREAK POINTS in the text.
-   - Place images where the topic shifts, at key explanations, or where a visual would enhance understanding.
-   - Do NOT cluster all images together — spread them evenly.
-   - The marker format MUST be exactly: [image-N = visual description of what should appear on screen]
-   - Example: [image-3 = elephant herd walking across a golden savanna at sunset]
-   - IMPORTANT: Write the visual descriptions in the [image-N = ...] markers in English (for image generation compatibility).
-
-2. For each image, generate a DETAILED image generation prompt that includes:
-   - Scene composition (wide shot, close-up, diagram style, etc.)
-   - Subject description (specific and visual)
-   - Mood/lighting (warm, dramatic, clean, professional, etc.)
-   - Style (photorealistic, illustration, infographic, cinematic, etc.)
-   - Aspect ratio hint (16:9 for YouTube)
-   - Write ALL image_prompt fields in English (for AI image generation compatibility).
-
-3. IMPORTANT: Preserve the original language of the step text in the annotated_step_text.
-   If the step text is in {language}, keep it in {language} — only the [image-N = ...] marker descriptions
-   should be in English for image generation compatibility.
-
-Return the result matching the PerStepImageResult schema:
-- step_number: {step_number}
-- annotated_step_text: The step's text with [image-N = ...] markers inserted
-- images: List of ImagePlacement objects, one per image"""
-
-
-# ─── Node 9: Thumbnail Analyzer (Groq Vision) ─────────────────────────────────
-
-THUMBNAIL_ANALYSIS_PROMPT = """
-You are an expert image analyst and AI image prompt engineer.
-
-Carefully analyze this YouTube thumbnail image and observe EVERYTHING:
-
-STEP 1 - VISUAL ANALYSIS:
-- Background: color, gradient, texture, patterns
-- Main subjects: people, objects, characters (appearance, clothing, position)
-- Text: every word visible, font style, font size, text color, text outline/shadow
-- Color palette: list dominant colors with descriptions (e.g. deep teal, salmon pink)
-- Layout: position of each element (left, center, right, top, bottom)
-- Lighting: bright, dark, glowing, shadowed, gradient
-- Style: photorealistic, illustrated, cartoon, 3D render, flat design
-- Special effects: glow, shadows, overlays, borders, badges
-
-STEP 2 - GENERATE IMAGE PROMPT:
-Write a detailed image generation prompt that:
-- Recreates this thumbnail with 3-4% variation only
-- Keeps same layout, composition, and style
-- Keeps all visible text exactly the same
-- Changes minor details: slightly different color tones, clothing shade
-- Maintains same overall mood and energy
-
-FORMAT:
-- ONE detailed paragraph only
-- Include: subjects, positions, colors, text, background, lighting, style
-- End with: sharp focus, 8k resolution, professional thumbnail design, high contrast
-- Return ONLY the prompt. No explanations, no labels, nothing else.
+SCRIPT:
+\"\"\"{draft}\"\"\"
 """
 
 
+# ─── Node 7: Image Allocator ───────────────────────────────────────────────────
+
+IMAGE_ALLOCATOR_SYSTEM = """You are a video image planner.
+Allocate exactly 1 image per step (testing mode).
+For each step provide 1 short visual hint (max 5 words).
+Return result matching StepImageAllocationList schema.
+Write step_description and image_hints in English."""
+
+IMAGE_ALLOCATOR_USER = "Title: {video_title}\nSteps:\n{steps_summary}"
+
+
+# ─── Node 8: Image Placer ──────────────────────────────────────────────────────
+
+IMAGE_PLACER_SYSTEM = "You are a video image director."
+
+IMAGE_PLACER_USER = """Place {image_count} image(s) in this script step.
+Title: {video_title} | Step {step_number}: {step_description}
+Image numbers: {image_nums_str}
+Hints: {hints_str}
+
+STEP TEXT:
+\"\"\"{step_text}\"\"\"
+
+Rules:
+1. Insert [image-N = short description max 8 words] at a natural break.
+2. image_prompt: max 20 words, English only, 16:9.
+3. Keep step text in {language}.
+Return PerStepImageResult schema."""
+
+
+# ─── Node 9: Thumbnail Analyzer ───────────────────────────────────────────────
+
+THUMBNAIL_ANALYSIS_PROMPT = """Analyze this YouTube thumbnail.
+Write ONE image generation prompt that recreates it with 3-4% variation.
+Keep: layout, text, style, composition.
+Max 50 words.
+Return ONLY the prompt."""
 # ═══════════════════════════════════════════════════════════════════════════════
 # SECTION 7: YOUTUBE DATA FETCHING SERVICES
 # ═══════════════════════════════════════════════════════════════════════════════
