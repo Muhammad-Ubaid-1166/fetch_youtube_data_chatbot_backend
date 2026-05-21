@@ -52,10 +52,6 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# SECTION 1: CONFIGURATION
-# ═══════════════════════════════════════════════════════════════════════════════
-
 _PROJECT_ROOT = Path(__file__).resolve().parent
 
 
@@ -113,6 +109,11 @@ class Settings(BaseSettings):
 
     openai_api_key: str = ""
 
+    first: str = ""
+    second: str = ""
+    fifth: str = ""
+    SIXTH_API_KEY: str = ""
+
 
 settings = Settings()
 
@@ -145,6 +146,11 @@ def validate_api_keys() -> None:
         "IMGBB_API_KEY": settings.imgbb_api_key,
         "CF_WORKER_API_KEY": settings.cf_worker_api_key,
         "OPENAI_API_KEY": settings.openai_api_key,
+        "first": settings.first,
+        "second": settings.second,
+        "fifth": settings.fifth,
+        "sixth": settings.SIXTH_API_KEY,
+
     }
 
     missing = [name for name, value in required_keys.items() if not value]
@@ -158,7 +164,10 @@ def validate_api_keys() -> None:
     print(f"[CONFIG][OK] GEMINI_API_KEY_1: {settings.gemini_api_key_1[:6]}...")
     print(f"[CONFIG][OK] GEMINI_API_KEY_2: {settings.gemini_api_key_2[:6]}...")
     print(f"[CONFIG][OK] OPENAI_API_KEY: {settings.openai_api_key[:6]}...")
-
+    print(f"[CONFIG][OK] FIRST_API_KEY: {settings.first[:6]}...")
+    print(f"[CONFIG][OK] SECOND_API_KEY: {settings.second[:6]}...")
+    print(f"[CONFIG][OK] FIFTH_API_KEY: {settings.fifth[:6]}...")
+    print(f"[CONFIG][OK] SIXTH_API_KEY: {settings.SIXTH_API_KEY[:6]}...")
 
 validate_api_keys()
 
@@ -370,36 +379,22 @@ class MetadataState(TypedDict):
     generated_thumbnail_url: Optional[str]
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# SECTION 4: LLM INITIALIZATION
-# ═══════════════════════════════════════════════════════════════════════════════
 
-# ────── HTTPX CLIENTS THAT BYPASS PROXY ──────
-# These ensure LLM calls and API calls go DIRECTLY, bypassing Webshare.
-# Only the Google API client will use the Webshare proxy (via env vars).
-
-# Shared client for ChatOpenAI-based LLMs
 llm_http_client = httpx.Client(trust_env=False)
 
 # ── Dedicated client for Groq Vision — avoids any shared-state issues ──
 groq_vision_http_client = httpx.Client(trust_env=False)
 
-# Key assignment strategy (balances load across both Gemini keys):
-#   GEMINI_API_KEY_1 → metadata_rewriter_llm  (3 calls: title, description, hashtags)
-#   GEMINI_API_KEY_2 → transcript_steps_llm   (1 call: step planning)
-#   OPENAI_API_KEY   → script_writer_llm      (6-10 calls: sequential step writing — heaviest)
-#   OPENAI_API_KEY   → script_polish_llm       (1 call: final polish)
-#   OPENAI_API_KEY   → image_placer_llm        (6-10 calls: per-step image placement)
-#   OPENAI_API_KEY   → image_allocator_llm     (1 call: image allocation)
-#   GROQ_API_KEY_2   → groq_vision_client      (1 call: Groq Vision thumbnail analysis)
-#   CF_WORKER        → image_generator_node     (15+1 calls: 15 script images + 1 thumbnail)
 
-metadata_rewriter_llm = ChatOpenAI(
-    api_key=settings.gemini_api_key_1,
-    base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
-    model="gemini-2.5-flash",
-    http_client=llm_http_client
+
+# from langchain_groq import ChatGroq
+
+metadata_rewriter_llm = ChatGroq(
+    groq_api_key=settings.groq_api_key_3,
+    model="llama-3.3-70b-versatile",
+    http_client=groq_vision_http_client
 )
+
 
 transcript_steps_llm = ChatOpenAI(
     api_key=settings.gemini_api_key_2,
@@ -409,28 +404,32 @@ transcript_steps_llm = ChatOpenAI(
 )
 
 script_polish_llm = ChatOpenAI(
-    api_key=settings.openai_api_key,
-    model="gpt-4.1-nano",
+    api_key=settings.first,
+    base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+    model="gemini-2.5-flash",
     http_client=llm_http_client
 )
 
 image_placer_llm = ChatOpenAI(
-    api_key=settings.openai_api_key,
-    model="gpt-4.1-nano",
+    api_key=settings.second,
+    base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+    model="gemini-2.5-flash",
     http_client=llm_http_client
 )
 
 script_writer_llm = ChatOpenAI(
-    api_key=settings.openai_api_key,
-    model="gpt-4.1-nano",
+    api_key=settings.SIXTH_API_KEY,
+    base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+    model="gemini-2.5-flash",
     http_client=llm_http_client
 )
 
-image_allocator_llm = ChatOpenAI(
-    api_key=settings.openai_api_key,
-    model="gpt-4.1-nano",
-    http_client=llm_http_client
+image_allocator_llm = ChatGroq(
+    groq_api_key=settings.groq_api_key_1,
+    model="llama-3.3-70b-versatile",
+    http_client=groq_vision_http_client
 )
+
 
 # ── Groq Vision — using the groq SDK directly ──
 # ChatGroq does NOT reliably forward http_client to its internal groq.Groq client,
@@ -441,6 +440,7 @@ groq_vision_client = Groq(
 )
 
 print("[LLM_INIT][OK] All LLMs initialized (Groq SDK + ChatOpenAI — Proxy Free).")
+
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
