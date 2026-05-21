@@ -1691,13 +1691,12 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://localhost:3000",
-        # Add your deployed frontend URL here later
+        "https://fetch-youtube-data-chatbot-frontend.vercel.app",  # fixed typo
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 @app.post("/fetch-video-data", response_model=VideoDataResponse)
 def fetch_video_data_endpoint(request: YouTubeURLRequest):
