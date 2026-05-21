@@ -1691,7 +1691,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://localhost:3000",
-        "https://fetch-youtube-data-chatbot-frontend.vercel.app",  # fixed typo
+        "https://fetch-youtueb-data-chatbot-frontend-mpj6aifcd.vercel.app",  # your real URL
     ],
     allow_credentials=True,
     allow_methods=["*"],
