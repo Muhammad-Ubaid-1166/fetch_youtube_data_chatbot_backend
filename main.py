@@ -814,6 +814,14 @@ def build_metadata_string(metadata: dict) -> str:
 
 def _parse_transcript_response(data) -> str:
     """Parses the RapidAPI transcript response into a plain string."""
+    
+    # New API: {"content": [{"text": "...", "offset": 0, "duration": 5000}, ...]}
+    if isinstance(data, dict) and "content" in data:
+        segments = data["content"]
+        if isinstance(segments, list):
+            return " ".join(s.get("text", "") for s in segments if s.get("text"))
+    
+    # Old API format (keep as fallback)
     if isinstance(data, list) and len(data) > 0:
         first = data[0]
         if isinstance(first, dict) and "transcriptionAsText" in first:
@@ -832,25 +840,30 @@ def _parse_transcript_response(data) -> str:
             if isinstance(val, list):
                 return " ".join(s.get("text", "") for s in val)
             return str(val)
-        if "transcript" in data:
-            val = data["transcript"]
-            if isinstance(val, list):
-                return " ".join(s.get("text", "") for s in val)
-            return str(val)
 
-    print(f"[TRANSCRIPT][WARN] Unexpected response shape: {type(data)}")
+    print(f"[TRANSCRIPT][WARN] Unexpected response shape: {type(data)} — raw: {str(data)[:200]}")
     return str(data)
 
 
 def fetch_transcript(video_id: str, language: str = "English") -> Optional[str]:
-    """Fetches transcript via RapidAPI (youtube-transcriptor)."""
-    url = "https://youtube-transcriptor.p.rapidapi.com/transcript"
+    """Fetches transcript via RapidAPI (youtube-transcripts)."""
+    
+    # NEW API
+    url = "https://youtube-transcripts.p.rapidapi.com/youtube/transcript"
     headers = {
-        "x-rapidapi-host": "youtube-transcriptor.p.rapidapi.com",
+        "x-rapidapi-host": "youtube-transcripts.p.rapidapi.com",
         "x-rapidapi-key": settings.rapidapi_key,
+        "Content-Type": "application/json",
     }
-    lang_code = language[:2].lower() if language else 'en'
-    params = {"video_id": video_id, "lang": lang_code}
+    
+    lang_code = LANGUAGE_CODE_MAP.get(language.lower().strip(), "en")
+    
+    params = {
+        "url": f"https://www.youtube.com/watch?v={video_id}",
+        "videoId": video_id,
+        "lang": lang_code,
+        "chunkSize": "500",
+    }
 
     try:
         print(f"[FETCH_TRANSCRIPT] Fetching via RapidAPI (Lang: {lang_code})...")
@@ -875,7 +888,6 @@ def fetch_transcript(video_id: str, language: str = "English") -> Optional[str]:
         print(f"[FETCH_TRANSCRIPT][ERROR] {e}")
         traceback.print_exc()
         return None
-
 
 def fetch_thumbnail_url(url: str) -> Optional[str]:
     """Extract video ID and return the best available thumbnail URL."""
