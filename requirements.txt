@@ -10,8 +10,4 @@ langchain-core
 langchain-groq
 langchain-openai
 langgraph
-<<<<<<< HEAD
 tenacity
-=======
-tenacity
->>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
