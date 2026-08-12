@@ -5,7 +5,11 @@ Professional multi-node LangGraph pipeline that:
   1. Fetches YouTube video metadata, transcript, and thumbnail
   2. Rewrites title, description, and hashtags (3-4% variation) in any language
   3. Plans structured script steps from transcript
+<<<<<<< HEAD
   4. Writes a 2500+ word YouTube script sequentially in any language
+=======
+  4. Writes a script of min_script_word_count+ words sequentially in any language
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
   5. Polishes the script into one cohesive piece
   6. Plans and generates AI images for each script section
   7. Analyzes thumbnail via Groq Vision and regenerates it
@@ -15,10 +19,17 @@ All generated content (title, description, hashtags, script) is produced
 in the language specified by the client via the `language` parameter.
 
 Endpoint Parameters:
+<<<<<<< HEAD
   - url:                  YouTube video URL
   - language:             Target language (e.g., "English", "Urdu", "Hindi", "Arabic")
   - min_script_word_count: Minimum word count target for the script (default: 2500)
   - default_image_count:  Target number of images to generate (default: 15)
+=======
+  - url:                   YouTube video URL
+  - language:              Target language (e.g., "English", "Urdu", "Hindi", "Arabic")
+  - min_script_word_count: Minimum word count target for the script (default: 10)
+  - default_image_count:   Target number of images to generate (default: 1)
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
 
 Run: uvicorn main:app --reload
 API Docs: http://127.0.0.1:8000/docs
@@ -40,18 +51,33 @@ from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+<<<<<<< HEAD
 from groq import Groq
+=======
+from groq import Groq, RateLimitError
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
 
 from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import StateGraph, START, END
+<<<<<<< HEAD
 from tenacity import retry, stop_after_attempt, wait_fixed, before_log, after_log
+=======
+from tenacity import retry, stop_after_attempt, wait_fixed, before_log, after_log, retry_if_exception_type
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 
+<<<<<<< HEAD
+=======
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 1: CONFIGURATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
 _PROJECT_ROOT = Path(__file__).resolve().parent
 
 
@@ -66,8 +92,13 @@ class Settings(BaseSettings):
     )
 
     # ── Script Config (defaults — can be overridden per-request) ──
+<<<<<<< HEAD
     min_script_word_count: int = 2500
     default_image_count: int = 15
+=======
+    min_script_word_count: int = 10
+    default_image_count: int = 1
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
 
     # ── YouTube Data API ──
     youtube_api_key: str = ""
@@ -185,11 +216,19 @@ class YouTubeURLRequest(BaseModel):
                     "Examples: 'English', 'Urdu', 'Hindi', 'Arabic', 'Spanish', 'French', etc."
     )
     min_script_word_count: int = Field(
+<<<<<<< HEAD
         default=2500,
         description="Minimum word count target for the generated script"
     )
     default_image_count: int = Field(
         default=15,
+=======
+        default=10,
+        description="Minimum word count target for the generated script"
+    )
+    default_image_count: int = Field(
+        default=1,
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
         description="Default target number of images to generate for the script"
     )
 
@@ -260,7 +299,11 @@ class StepImageAllocation(BaseModel):
 class ImagePlanOutput(BaseModel):
     """Complete image plan — combines Phase 1 allocations + Phase 2 placements."""
     total_images: int = Field(..., description="Total number of images across all steps")
+<<<<<<< HEAD
     default_images: int = Field(default=15, description="Default target image count")
+=======
+    default_images: int = Field(default=1, description="Default target image count")
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
     step_allocations: List[StepImageAllocation] = Field(
         ..., description="Image allocation per step (Phase 1 output)"
     )
@@ -396,6 +439,7 @@ metadata_rewriter_llm = ChatGroq(
 )
 
 
+<<<<<<< HEAD
 transcript_steps_llm = ChatOpenAI(
     api_key=settings.gemini_api_key_2,
     base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
@@ -422,6 +466,30 @@ script_writer_llm = ChatOpenAI(
     base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
     model="gemini-2.5-flash",
     http_client=llm_http_client
+=======
+transcript_steps_llm = ChatGroq(
+    groq_api_key=settings.groq_api_key_1,
+    model="llama-3.3-70b-versatile",
+    http_client=groq_vision_http_client
+)
+
+script_polish_llm = ChatGroq(
+    groq_api_key=settings.groq_api_key_2,
+    model="llama-3.3-70b-versatile",
+    http_client=groq_vision_http_client
+)
+
+image_placer_llm = ChatGroq(
+    groq_api_key=settings.groq_api_key_3,
+    model="llama-3.3-70b-versatile",
+    http_client=groq_vision_http_client
+)
+
+script_writer_llm = ChatGroq(
+    groq_api_key=settings.groq_api_key_1,
+    model="llama-3.3-70b-versatile",
+    http_client=groq_vision_http_client
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
 )
 
 image_allocator_llm = ChatGroq(
@@ -439,8 +507,12 @@ groq_vision_client = Groq(
     http_client=groq_vision_http_client  # ✅ Bypasses global proxy
 )
 
+<<<<<<< HEAD
 print("[LLM_INIT][OK] All LLMs initialized (Groq SDK + ChatOpenAI — Proxy Free).")
 
+=======
+print("[LLM_INIT][OK] All LLMs initialized (Groq — Proxy Free).")
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -475,13 +547,22 @@ LANGUAGE: Write ALL output in {language}. No exceptions."""
 
 # ─── Node 1-3: Metadata Rewriter Prompts ──────────────────────────────────────
 
+<<<<<<< HEAD
 REWRITE_TITLE_SYSTEM = """Rewrite the title: 3-4% change, SEO friendly, max 80 chars.
+=======
+REWRITE_TITLE_SYSTEM = """Rewrite the title: 3-4% change, SEO friendly.
+HARD RULES: max 8 words / 40 characters, one line, no hashtags, no punctuation at end.
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
 Return ONLY the new title.""" + LANGUAGE_DIRECTIVE
 
 REWRITE_TITLE_USER = "Title: {title}"
 
 
 REWRITE_DESCRIPTION_SYSTEM = """Rewrite the description: 3-4% change, SEO optimized.
+<<<<<<< HEAD
+=======
+HARD RULES: max 2 sentences / 40 words, one short paragraph, no bullet points.
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
 Return ONLY the new description.""" + LANGUAGE_DIRECTIVE
 
 REWRITE_DESCRIPTION_USER = "Description: {description}"
@@ -489,7 +570,11 @@ REWRITE_DESCRIPTION_USER = "Description: {description}"
 
 REWRITE_HASHTAGS_SYSTEM = """Generate 5 hashtags on the same topic.
 Format: #tag1, #tag2, #tag3, #tag4, #tag5
+<<<<<<< HEAD
 Return ONLY the hashtags.""" + LANGUAGE_DIRECTIVE
+=======
+Return ONLY the hashtags, nothing else.""" + LANGUAGE_DIRECTIVE
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
 
 REWRITE_HASHTAGS_USER = "Original hashtags: {hashtags}"
 
@@ -497,10 +582,24 @@ REWRITE_HASHTAGS_USER = "Original hashtags: {hashtags}"
 # ─── Node 4: Transcript Steps Maker ───────────────────────────────────────────
 
 TRANSCRIPT_STEPS_SYSTEM = """You are a script planner.
+<<<<<<< HEAD
 Break the transcript into 3 steps ONLY (for testing).
 Each step MUST have:
 - step_number, description (1 sentence), continuity_note (1 sentence), tone, word_count (set to 50)
 Total word count across steps: ~150 words.
+=======
+Break the transcript into a sequence of cohesive script steps whose word counts
+sum to approximately {min_word_count} words total.
+Each step MUST have:
+- step_number: sequential (1, 2, 3, ...)
+- description (max 8 words): what this step covers from the transcript
+- continuity_note (max 8 words): how this step connects to the previous one.
+  For Step 1, write 'N/A — this is the opening step.'
+- tone (1 word): emotional/delivery tone (energetic, calm, dramatic, humorous, authoritative, etc.)
+- word_count: target words for this step, sized so all steps together reach ~{min_word_count} words
+Use a natural number of steps (typically 5-12) sized by the transcript content.
+Use facts strictly from the transcript — never invent content.
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
 Return result matching TranscriptStepsOutput schema.
 Write in {language}.""" + LANGUAGE_DIRECTIVE
 
@@ -509,29 +608,56 @@ TRANSCRIPT_STEPS_USER = "Transcript:\n{transcript}"
 
 # ─── Node 5: Script Writer ────────────────────────────────────────────────────
 
+<<<<<<< HEAD
 SCRIPT_WRITER_SYSTEM = "You are a YouTube script writer." + LANGUAGE_DIRECTIVE
+=======
+SCRIPT_WRITER_SYSTEM = "You are a YouTube script writer. Respond ONLY with the script text — no headers, no commentary, no markdown." + LANGUAGE_DIRECTIVE
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
 
 SCRIPT_WRITER_USER = """Write Step {step_number} of {total_steps} for: {video_title}
 
 - Description: {description}
 - Tone: {tone}
+<<<<<<< HEAD
 - Word count: {word_count} words MAX (testing mode — keep it short)
 - Continue naturally from: \"{prev_output}\"
 - Use facts from: \"{transcript}\"
 
 Rules: Script text only. No headers. Max {word_count} words. Write in {language}."""
+=======
+- Word count: approximately {word_count} words
+- Continue naturally from: \"{prev_output}\"
+- Use facts from: \"{transcript}\"
+
+Rules:
+1. Script text only. No headers, no stage directions, no quotation marks around the text.
+2. Aim for approximately {word_count} words (minor deviation is acceptable).
+3. Stay in {language} throughout.
+4. Keep the tone specified above."""
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
 
 
 # ─── Node 6: Script Polish ────────────────────────────────────────────────────
 
+<<<<<<< HEAD
 SCRIPT_POLISH_SYSTEM = "You are a script editor." + LANGUAGE_DIRECTIVE
+=======
+SCRIPT_POLISH_SYSTEM = "You are a script editor. Respond ONLY with the final script text — no commentary, no markdown." + LANGUAGE_DIRECTIVE
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
 
 SCRIPT_POLISH_USER = """Polish this script for: {video_title}
 
 Rules:
+<<<<<<< HEAD
 1. Smooth transitions only — do NOT rewrite content.
 2. Remove repetitions.
 3. Keep it under 200 words (testing mode).
+=======
+1. Smooth transitions only — do NOT rewrite the content or change facts.
+2. Remove repetitions and filler words.
+3. The final script must contain at least {min_word_count} words. If the draft falls short,
+   expand naturally with on-topic elaboration drawn from the transcript facts.
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
 4. Return ONLY the script. No commentary.
 5. Write in {language}.
 
@@ -543,8 +669,15 @@ SCRIPT:
 # ─── Node 7: Image Allocator ───────────────────────────────────────────────────
 
 IMAGE_ALLOCATOR_SYSTEM = """You are a video image planner.
+<<<<<<< HEAD
 Allocate exactly 1 image per step (testing mode).
 For each step provide 1 short visual hint (max 5 words).
+=======
+Allocate exactly {default_image_count} image(s) TOTAL across all steps.
+Distribute them proportionally to each step's word count — bigger steps get more images,
+giving at least 1 image to every step when the total allows (never exceeding the total).
+For each allocated image provide 1 short visual hint (max 3 words).
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
 Return result matching StepImageAllocationList schema.
 Write step_description and image_hints in English."""
 
@@ -553,7 +686,11 @@ IMAGE_ALLOCATOR_USER = "Title: {video_title}\nSteps:\n{steps_summary}"
 
 # ─── Node 8: Image Placer ──────────────────────────────────────────────────────
 
+<<<<<<< HEAD
 IMAGE_PLACER_SYSTEM = "You are a video image director."
+=======
+IMAGE_PLACER_SYSTEM = "You are a video image director. Keep ALL outputs SHORT: marker descriptions max 4 words, image_prompt max 10 words, scene_description max 6 words."
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
 
 IMAGE_PLACER_USER = """Place {image_count} image(s) in this script step.
 Title: {video_title} | Step {step_number}: {step_description}
@@ -574,6 +711,7 @@ Return PerStepImageResult schema."""
 # (Single consolidated definition — not duplicated in Section 9)
 
 THUMBNAIL_ANALYSIS_PROMPT = """
+<<<<<<< HEAD
 You are a world-class image analyst and professional AI image prompt engineer
 specializing in YouTube thumbnail reconstruction. You have a sharp eye for
 design details including exact colors, typography, spatial composition,
@@ -633,6 +771,17 @@ STRICT FORMAT:
 - Describe: background → back subjects → front subjects → text
 - End EXACTLY with: sharp focus, 8k resolution, professional YouTube thumbnail design, high contrast
 - Return ONLY the prompt. Nothing else.
+=======
+You are an expert YouTube thumbnail analyst.
+
+Analyze the thumbnail image briefly, then generate ONE short image-generation prompt
+that recreates it with only 3-4% variation.
+
+The prompt MUST describe: subject, background, text (keep exact wording), colors, and style.
+
+STRICT FORMAT: ONE flowing paragraph, max 25 words.
+Return ONLY the prompt. Nothing else.
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
 """
 
 
@@ -650,9 +799,17 @@ LANGUAGE_CODE_MAP = {
     "turkish": "tr", "persian": "fa", "bengali": "bn", "indonesian": "id",
     "italian": "it", "dutch": "nl", "polish": "pl", "thai": "th",
     "vietnamese": "vi", "malay": "ms", "tamil": "ta", "telugu": "te",
+<<<<<<< HEAD
     "punjabi": "pa", "marathi": "mr", "swedish": "sv", "norwegian": "no",
     "danish": "da", "finnish": "fi", "greek": "el", "czech": "cs",
     "romanian": "ro", "hungarian": "hu", "ukrainian": "uk", "hebrew": "he",
+=======
+    "punjabi": "pa", "marathi": "mr", "gujarati": "gu", "kannada": "kn",
+    "malayalam": "ml", "nepali": "ne", "sinhala": "si",
+    "swedish": "sv", "norwegian": "no", "danish": "da", "finnish": "fi",
+    "greek": "el", "czech": "cs", "romanian": "ro", "hungarian": "hu",
+    "ukrainian": "uk", "hebrew": "he",
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
 }
 
 LANGUAGE_VARIANTS = {
@@ -691,6 +848,14 @@ LANGUAGE_VARIANTS = {
     "hu": ["hu", "hu-HU"],
     "uk": ["uk", "uk-UA"],
     "he": ["he", "iw"],
+<<<<<<< HEAD
+=======
+    "gu": ["gu", "gu-IN"],
+    "kn": ["kn", "kn-IN"],
+    "ml": ["ml", "ml-IN"],
+    "ne": ["ne", "ne-NP"],
+    "si": ["si", "si-LK"],
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
 }
 
 GLOBAL_FALLBACK_CHAIN = [
@@ -715,6 +880,10 @@ GLOBAL_FALLBACK_CHAIN = [
     "fa",
     "ta", "ta-IN",
     "te", "pa", "mr",
+<<<<<<< HEAD
+=======
+    "gu", "gu-IN", "kn", "kn-IN", "ml", "ml-IN", "ne", "ne-NP", "si", "si-LK",
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
     "nl", "pl", "th", "sv", "no", "da",
     "fi", "el", "cs", "ro", "hu", "uk", "he",
 ]
@@ -791,7 +960,11 @@ def fetch_metadata(video_id: str) -> Optional[dict]:
         return {
             "title": item.get("title", ""),
             "description": item.get("description", ""),
+<<<<<<< HEAD
             "tags": item.get("tags", []),
+=======
+            "tags": item.get("tags", [])[:4],
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
             "thumbnail_url": thumbnail_url,
         }
     except Exception as e:
@@ -843,12 +1016,22 @@ def _parse_transcript_response(data) -> str:
 
 
 def fetch_transcript(video_id: str, language: str = "English") -> Optional[str]:
+<<<<<<< HEAD
     """Fetches transcript via RapidAPI (youtube-transcriptor)."""
+=======
+    """Fetches transcript via RapidAPI (youtube-transcriptor).
+
+    Tries the target language first (primary code + regional variants),
+    then English/Hindi fallbacks, so the pipeline almost always gets a
+    transcript even when the requested language is unavailable.
+    """
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
     url = "https://youtube-transcriptor.p.rapidapi.com/transcript"
     headers = {
         "x-rapidapi-host": "youtube-transcriptor.p.rapidapi.com",
         "x-rapidapi-key": settings.rapidapi_key,
     }
+<<<<<<< HEAD
     lang_code = language[:2].lower() if language else 'en'
     params = {"video_id": video_id, "lang": lang_code}
 
@@ -875,6 +1058,43 @@ def fetch_transcript(video_id: str, language: str = "English") -> Optional[str]:
         print(f"[FETCH_TRANSCRIPT][ERROR] {e}")
         traceback.print_exc()
         return None
+=======
+
+    requested_codes = _get_language_codes(language)
+    candidates = requested_codes[:8]
+    for extra in ("en", "en-US", "hi"):
+        if extra not in candidates:
+            candidates.append(extra)
+
+    for lang_code in candidates:
+        try:
+            print(f"[FETCH_TRANSCRIPT] Fetching via RapidAPI (Lang: {lang_code})...")
+            with httpx.Client(timeout=30.0, trust_env=False) as client:
+                response = client.get(
+                    url,
+                    headers=headers,
+                    params={"video_id": video_id, "lang": lang_code}
+                )
+                response.raise_for_status()
+                data = response.json()
+
+            transcript_text = _parse_transcript_response(data)
+
+            if transcript_text and transcript_text.strip():
+                transcript_text = transcript_text.strip()
+                print(f"[FETCH_TRANSCRIPT] ✅ Success — {len(transcript_text)} chars (Lang: {lang_code}).")
+                return transcript_text
+
+            print(f"[FETCH_TRANSCRIPT] ⚠️  Empty response for lang {lang_code}. Trying next...")
+        except httpx.HTTPStatusError as e:
+            print(f"[FETCH_TRANSCRIPT][HTTP ERROR] lang={lang_code}: "
+                  f"{e.response.status_code}: {e.response.text[:200]}")
+        except Exception as e:
+            print(f"[FETCH_TRANSCRIPT][ERROR] lang={lang_code}: {e}")
+
+    print("[FETCH_TRANSCRIPT] ❌ No transcript found across all tried languages.")
+    return None
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
 
 
 def fetch_thumbnail_url(url: str) -> Optional[str]:
@@ -924,6 +1144,7 @@ def fetch_thumbnail_url(url: str) -> Optional[str]:
         traceback.print_exc()
         return None
 
+<<<<<<< HEAD
 
 def validate_thumbnail_url(thumbnail_url: str) -> Optional[str]:
     """Validate that a thumbnail URL actually returns an image."""
@@ -944,12 +1165,20 @@ def validate_thumbnail_url(thumbnail_url: str) -> Optional[str]:
     except Exception as e:
         print(f"[THUMBNAIL_VALIDATE][SKIP] {thumbnail_url} — {e}")
     return None
-
+=======
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # SECTION 8: IMAGE GENERATION SERVICE
 # ═══════════════════════════════════════════════════════════════════════════════
 
+<<<<<<< HEAD
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 8: IMAGE GENERATION SERVICE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+=======
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
 def generate_single_image(prompt: str) -> Dict:
     """Generate a single image via Cloudflare Worker and upload to ImgBB.
 
@@ -1086,7 +1315,11 @@ def transcript_steps_maker_node(state: MetadataState) -> dict:
     """Break transcript into structured script steps."""
     print("[LANGGRAPH][NODE] transcript_steps_maker running...")
     language = state.get("language", "English")
+<<<<<<< HEAD
     min_word_count = state.get("min_script_word_count", 2500)
+=======
+    min_word_count = state.get("min_script_word_count", 10)
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
 
     try:
         messages = [
@@ -1128,7 +1361,11 @@ def script_writer_node(state: MetadataState) -> dict:
         return {"written_steps_draft": None, "written_steps_list": None}
 
     language = state.get("language", "English")
+<<<<<<< HEAD
     min_word_count = state.get("min_script_word_count", 2500)
+=======
+    min_word_count = state.get("min_script_word_count", 10)
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
     transcript = state.get("transcript", "")
     video_title = state.get("title", "")
 
@@ -1197,7 +1434,17 @@ def script_writer_node(state: MetadataState) -> dict:
     draft = "\n\n".join(written_steps)
     total_words = sum(len(s.split()) for s in written_steps)
     print(f"[LANGGRAPH][NODE][OK] script_writer complete: {len(written_steps)} steps, ~{total_words} total words [{language}]")
+<<<<<<< HEAD
     return {"written_steps_draft": draft, "written_steps_list": json.dumps(written_steps)}
+=======
+    return {
+        "written_steps_draft": draft,
+        "written_steps_list": json.dumps(written_steps),
+        # Persist the (possibly scaled) plan so the API response and
+        # downstream image allocator see the exact word counts actually written.
+        "script_steps": steps_output.model_dump_json(),
+    }
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
 
 
 # ─── Node 6: Script Polish ────────────────────────────────────────────────────
@@ -1212,7 +1459,11 @@ def script_polish_node(state: MetadataState) -> dict:
         return {"final_script": None}
 
     language = state.get("language", "English")
+<<<<<<< HEAD
     min_word_count = state.get("min_script_word_count", 2500)
+=======
+    min_word_count = state.get("min_script_word_count", 10)
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
     video_title = state.get("title", "")
     draft_word_count = len(draft.split())
 
@@ -1258,7 +1509,11 @@ def image_allocator_node(state: MetadataState) -> dict:
         print(f"[LANGGRAPH][NODE][ERROR] image_allocator: Could not parse script_steps: {e}")
         return {"image_allocations": None}
 
+<<<<<<< HEAD
     default_image_count = state.get("default_image_count", 15)
+=======
+    default_image_count = state.get("default_image_count", 1)
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
 
     steps_summary = ""
     for step in steps_output.steps:
@@ -1316,7 +1571,11 @@ def image_placer_node(state: MetadataState) -> dict:
         return {"image_plan": None, "annotated_transcript": None}
 
     language = state.get("language", "English")
+<<<<<<< HEAD
     default_image_count = state.get("default_image_count", 15)
+=======
+    default_image_count = state.get("default_image_count", 1)
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
     video_title = state.get("title", "")
     all_image_placements: List = []
     all_annotated_steps: List[str] = []
@@ -1419,6 +1678,10 @@ logger = logging.getLogger(__name__)
 @retry(
     stop=stop_after_attempt(3),
     wait=wait_fixed(5),
+<<<<<<< HEAD
+=======
+    retry=retry_if_exception_type(RateLimitError),
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
     before=before_log(logger, logging.INFO),
     after=after_log(logger, logging.INFO),
     reraise=True
@@ -1431,7 +1694,11 @@ def _invoke_vision(image_url: str) -> str:
     """
     print(f"[VISION] Calling LLM for: {image_url}")
     response = groq_vision_client.chat.completions.create(
+<<<<<<< HEAD
         model="meta-llama/llama-4-scout-17b-16e-instruct",
+=======
+        model=settings.groq_vision_model_name,
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
         messages=[
             {
                 "role": "user",
@@ -1442,7 +1709,11 @@ def _invoke_vision(image_url: str) -> str:
             }
         ],
         temperature=0.3,
+<<<<<<< HEAD
         max_tokens=2048,
+=======
+        max_tokens=128,
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
         top_p=0.85
     )
     return response.choices[0].message.content.strip()
@@ -1688,6 +1959,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
+<<<<<<< HEAD
     allow_origins=[
         "http://localhost:5173",
         "http://localhost:3000",
@@ -1698,6 +1970,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+=======
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+    allow_credentials=True,
+)
+
+
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
 @app.post("/fetch-video-data", response_model=VideoDataResponse)
 def fetch_video_data_endpoint(request: YouTubeURLRequest):
     """Fetch YouTube data and run the full LangGraph rewriting + image pipeline."""
@@ -1784,4 +2065,8 @@ def health_check():
 if __name__ == "__main__":
     import uvicorn
     print("[STARTUP] Visit: http://127.0.0.1:8000/docs\n")
+<<<<<<< HEAD
     uvicorn.run(app, host="0.0.0.0", port=8000)
+=======
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+>>>>>>> 7a3a837 (Align backend with frontend contract; untrack venv artifacts)
