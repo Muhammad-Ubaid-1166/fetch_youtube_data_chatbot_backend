@@ -105,8 +105,8 @@ class Settings(BaseSettings):
     image_gen_delay_sec: int = 1
 
     # ── LLM Model Names ──
-    groq_model_name: str = "llama-3.1-8b-instant"
-    groq_vision_model_name: str = "meta-llama/llama-4-scout-17b-16e-instruct"
+    groq_model_name:str = "openai/gpt-oss-120b"
+    groq_vision_model_name: str = "qwen/qwen3.8-27b"
 
     # ── Gemini OpenAI-compatible Base URL ──
     gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
@@ -392,44 +392,41 @@ llm_http_client = httpx.Client(trust_env=False)
 # ── Dedicated client for Groq Vision — avoids any shared-state issues ──
 groq_vision_http_client = httpx.Client(trust_env=False)
 
-
 metadata_rewriter_llm = ChatGroq(
     groq_api_key=settings.groq_api_key_3,
-    model="llama-3.3-70b-versatile",
+    model=settings.groq_model_name,
     http_client=groq_vision_http_client
 )
 
-
 transcript_steps_llm = ChatGroq(
     groq_api_key=settings.groq_api_key_1,
-    model="llama-3.3-70b-versatile",
+    model=settings.groq_model_name,
     http_client=groq_vision_http_client
 )
 
 script_polish_llm = ChatGroq(
     groq_api_key=settings.groq_api_key_2,
-    model="llama-3.3-70b-versatile",
+    model=settings.groq_model_name,
     http_client=groq_vision_http_client
 )
 
 image_placer_llm = ChatGroq(
     groq_api_key=settings.groq_api_key_3,
-    model="llama-3.3-70b-versatile",
+    model=settings.groq_model_name,
     http_client=groq_vision_http_client
 )
 
 script_writer_llm = ChatGroq(
     groq_api_key=settings.groq_api_key_1,
-    model="llama-3.3-70b-versatile",
+    model=settings.groq_model_name,
     http_client=groq_vision_http_client
 )
 
 image_allocator_llm = ChatGroq(
     groq_api_key=settings.groq_api_key_1,
-    model="llama-3.3-70b-versatile",
+    model=settings.groq_model_name,
     http_client=groq_vision_http_client
 )
-
 
 # ── Groq Vision — using the groq SDK directly ──
 # ChatGroq does NOT reliably forward http_client to its internal groq.Groq client,
